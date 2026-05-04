@@ -6,7 +6,7 @@ public class User {
     private String password;
     private int role; // 0-admin,1-manager,2-employee
     private Integer empId;
-
+    private String empName;
     public User(int id, String username, String password, int role, int empId) {
         this.id = id;
         this.username = username;
@@ -34,5 +34,11 @@ public class User {
     public Object getId() {
         return id;
     }
+    public String getEmpName() {
+        return empName;
+    }
 
+    public void setEmpName(String empName) {
+        this.empName = empName;
+    }
 }

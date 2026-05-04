@@ -53,7 +53,7 @@ public class MainLayout extends JFrame {
                 btn.setBackground(new Color(34, 45, 50));
             }
         });
-
+        btn.addActionListener(e -> showPage(name));
         sidebar.add(btn);
         sidebar.add(Box.createRigidArea(new Dimension(0, 5))); // Khoảng cách giữa các nút
 
@@ -101,5 +101,18 @@ public class MainLayout extends JFrame {
 
     public void showPage(String name) {
         cardLayout.show(mainContent, name);
+    }
+
+    public void clearMenu() {
+        sidebar.removeAll();          // Xóa toàn bộ menu cũ
+        menuButtons.clear();          // Xóa map button
+
+        mainContent.removeAll();      // ❗ QUAN TRỌNG: xóa luôn page cũ
+
+        sidebar.revalidate();
+        sidebar.repaint();
+
+        mainContent.revalidate();
+        mainContent.repaint();
     }
 }
