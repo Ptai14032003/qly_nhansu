@@ -4,9 +4,9 @@ import controller.MainController;
 
 public class Main {
     public static void main(String[] args) {
-        // Chạy giao diện trên luồng sự kiện của Swing (Khuyên dùng)
+        // MainApp bây giờ chỉ biết mỗi MainController
         javax.swing.SwingUtilities.invokeLater(() -> {
-            MainController controller = new MainController();
+            new controller.LoginController().init();
         });
     }
 }
