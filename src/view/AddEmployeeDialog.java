@@ -39,6 +39,10 @@ public class AddEmployeeDialog extends JDialog {
             this.name = name;
         }
 
+        public int getId() {
+            return id;
+        }
+
         @Override
         public String toString() {
             return name;
@@ -54,7 +58,11 @@ public class AddEmployeeDialog extends JDialog {
     public void setEmployeeData(EmployeeDTO emp) {
         if (emp == null) return;
 
-        // Thông tin văn bản
+        // 1. Khai báo định dạng để ép số về dạng chuỗi bình thường (không hiện 1.5E7)
+        java.text.DecimalFormat df = new java.text.DecimalFormat("#");
+        df.setMaximumFractionDigits(0);
+
+        // 2. Đổ các thông tin văn bản cơ bản
         txtName.setText(emp.getEmpName());
         txtPhone.setText(emp.getPhone());
         txtEmail.setText(emp.getEmail());
@@ -62,30 +70,29 @@ public class AddEmployeeDialog extends JDialog {
         txtIdCard.setText(emp.getIdCard());
         txtEducation.setText(emp.getEducation());
         txtExperience.setText(emp.getExperience());
-        txtSalary.setText(String.valueOf(emp.getBaseSalary()));
-        txtAllowance.setText(String.valueOf(emp.getAllowance()));
-        txtAvatarPath.setText(emp.getAvatar());
 
-        // Ngày tháng
+        // 3. SỬA LỖI LƯƠNG: Sử dụng df.format thay vì String.valueOf
+        txtSalary.setText(df.format(emp.getBaseSalary()));
+        txtAllowance.setText(df.format(emp.getAllowance()));
+
+        // 4. Xử lý ngày tháng
         if (emp.getBirthday() != null) dcBirthday.setDate(emp.getBirthday());
         if (emp.getHireDate() != null) dcHireDate.setDate(emp.getHireDate());
 
-        // Giới tính
+        // 5. Giới tính
         if (emp.getGender() != null) cbGender.setSelectedIndex(emp.getGender());
 
-        // Phòng ban & Chức vụ (Duyệt list để chọn đúng ID)
+        // 6. Phòng ban & Chức vụ
         setSelectedComboboxItem(cbDept, emp.getDeptId());
         setSelectedComboboxItem(cbPos, emp.getPosId());
 
-        // Hiển thị ảnh
+        // 7. Hiển thị ảnh đại diện (Tận dụng hàm updateAvatar để code sạch hơn)
         if (emp.getAvatar() != null && !emp.getAvatar().isEmpty()) {
-            File file = new File(emp.getAvatar());
-            if (file.exists()) {
-                ImageIcon icon = new ImageIcon(new ImageIcon(emp.getAvatar())
-                        .getImage().getScaledInstance(100, 100, Image.SCALE_SMOOTH));
-                lblAvatarPreview.setIcon(icon);
-                lblAvatarPreview.setText("");
-            }
+            updateAvatarPreview(emp.getAvatar());
+        } else {
+            lblAvatarPreview.setIcon(null);
+            lblAvatarPreview.setText("Chưa có ảnh");
+            txtAvatarPath.setText("");
         }
     }
 
@@ -111,82 +118,117 @@ public class AddEmployeeDialog extends JDialog {
     }
 
     private void setupUI(Frame parent) {
-        setSize(550, 850);
+        // 1. Thiết lập kích thước dialog phù hợp với màn hình laptop
+        setSize(850, 580);
         setLocationRelativeTo(parent);
-        setLayout(new BorderLayout(10, 10));
+        setLayout(new BorderLayout());
 
         dcBirthday.setDateFormatString("dd/MM/yyyy");
         dcHireDate.setDateFormatString("dd/MM/yyyy");
 
-        JPanel formPanel = new JPanel(new GridBagLayout());
-        formPanel.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.insets = new Insets(5, 5, 5, 5);
+        // 2. Panel chính chứa 2 cột thông tin
+        JPanel mainFormPanel = new JPanel(new GridLayout(1, 2, 20, 0));
+        mainFormPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
 
-        int r = 0;
-        addFormItem(formPanel, "Tên nhân viên *:", txtName, gbc, r++);
-        addFormItem(formPanel, "Ngày sinh:", dcBirthday, gbc, r++);
-        addFormItem(formPanel, "Giới tính:", cbGender, gbc, r++);
-        addFormItem(formPanel, "Số CCCD:", txtIdCard, gbc, r++);
-        addFormItem(formPanel, "Học vấn:", txtEducation, gbc, r++);
-        addFormItem(formPanel, "Kinh nghiệm:", txtExperience, gbc, r++);
-        addFormItem(formPanel, "Quê quán:", txtAddress, gbc, r++);
-        addFormItem(formPanel, "Số điện thoại:", txtPhone, gbc, r++);
-        addFormItem(formPanel, "Email:", txtEmail, gbc, r++);
-        addFormItem(formPanel, "Ngày vào làm:", dcHireDate, gbc, r++);
-        addFormItem(formPanel, "Lương cơ bản:", txtSalary, gbc, r++);
-        addFormItem(formPanel, "Phụ cấp:", txtAllowance, gbc, r++);
-        addFormItem(formPanel, "Phòng ban:", cbDept, gbc, r++);
-        addFormItem(formPanel, "Chức vụ:", cbPos, gbc, r++);
+        // --- CỘT TRÁI: THÔNG TIN CÁ NHÂN ---
+        JPanel leftPanel = new JPanel(new GridBagLayout());
+        leftPanel.setBorder(BorderFactory.createTitledBorder("Thông tin cá nhân"));
+        GridBagConstraints gbcL = new GridBagConstraints();
+        gbcL.fill = GridBagConstraints.HORIZONTAL;
+        gbcL.insets = new Insets(5, 5, 5, 5);
 
-        gbc.gridx = 0;
-        gbc.gridy = r;
-        formPanel.add(new JLabel("Ảnh đại diện:"), gbc);
-        JPanel pnlImg = new JPanel(new BorderLayout(5, 0));
+        int rL = 0;
+        addFormItem(leftPanel, "Tên nhân viên *:", txtName, gbcL, rL++);
+        addFormItem(leftPanel, "Ngày sinh:", dcBirthday, gbcL, rL++);
+        addFormItem(leftPanel, "Giới tính:", cbGender, gbcL, rL++);
+        addFormItem(leftPanel, "Số CCCD:", txtIdCard, gbcL, rL++);
+        addFormItem(leftPanel, "Số điện thoại:", txtPhone, gbcL, rL++);
+        addFormItem(leftPanel, "Email:", txtEmail, gbcL, rL++);
+        addFormItem(leftPanel, "Quê quán:", txtAddress, gbcL, rL++);
+
+        // --- CỘT PHẢI: CÔNG VIỆC, TÀI CHÍNH & ẢNH ---
+        JPanel rightPanel = new JPanel(new GridBagLayout());
+        rightPanel.setBorder(BorderFactory.createTitledBorder("Công việc & Tài chính"));
+        GridBagConstraints gbcR = new GridBagConstraints();
+        gbcR.fill = GridBagConstraints.HORIZONTAL;
+        gbcR.insets = new Insets(5, 5, 5, 5);
+
+        int rR = 0;
+        addFormItem(rightPanel, "Ngày vào làm:", dcHireDate, gbcR, rR++);
+        addFormItem(rightPanel, "Phòng ban:", cbDept, gbcR, rR++);
+        addFormItem(rightPanel, "Chức vụ:", cbPos, gbcR, rR++);
+        addFormItem(rightPanel, "Lương cơ bản:", txtSalary, gbcR, rR++);
+        addFormItem(rightPanel, "Phụ cấp:", txtAllowance, gbcR, rR++);
+        addFormItem(rightPanel, "Học vấn:", txtEducation, gbcR, rR++);
+        addFormItem(rightPanel, "Kinh nghiệm:", txtExperience, gbcR, rR++);
+
+        // Phần chọn ảnh lồng vào phía dưới cột phải
+        gbcR.gridx = 0;
+        gbcR.gridy = rR;
+        rightPanel.add(new JLabel("Ảnh đại diện:"), gbcR);
+
+        JPanel pnlImgActions = new JPanel(new BorderLayout(5, 0));
         txtAvatarPath.setEditable(false);
         JButton btnChooseAvatar = new JButton("Chọn ảnh");
-        pnlImg.add(txtAvatarPath, BorderLayout.CENTER);
-        pnlImg.add(btnChooseAvatar, BorderLayout.EAST);
-        gbc.gridx = 1;
-        formPanel.add(pnlImg, gbc);
-        r++;
+        pnlImgActions.add(txtAvatarPath, BorderLayout.CENTER);
+        pnlImgActions.add(btnChooseAvatar, BorderLayout.EAST);
+
+        gbcR.gridx = 1;
+        rightPanel.add(pnlImgActions, gbcR);
+        rR++;
 
         lblAvatarPreview.setPreferredSize(new Dimension(100, 100));
         lblAvatarPreview.setBorder(BorderFactory.createLineBorder(Color.GRAY));
-        gbc.gridx = 1;
-        gbc.gridy = r;
-        formPanel.add(lblAvatarPreview, gbc);
+        gbcR.gridx = 1;
+        gbcR.gridy = rR;
+        gbcR.fill = GridBagConstraints.NONE;
+        gbcR.anchor = GridBagConstraints.WEST;
+        rightPanel.add(lblAvatarPreview, gbcR);
 
+        // 3. Thêm 2 cột vào panel chính và thêm trực tiếp vào Dialog (Xóa Scroll)
+        mainFormPanel.add(leftPanel);
+        mainFormPanel.add(rightPanel);
+        add(mainFormPanel, BorderLayout.CENTER);
+
+        // 4. Panel chứa các nút điều khiển phía dưới
+        JButton btnSave = new JButton("Lưu thông tin");
+        JButton btnCancel = new JButton("Hủy");
+
+        JPanel bp = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        bp.add(btnSave);
+        bp.add(btnCancel);
+        add(bp, BorderLayout.SOUTH);
+
+        // --- CÁC SỰ KIỆN NÚT BẤM ---
         btnChooseAvatar.addActionListener(e -> {
             JFileChooser fc = new JFileChooser();
             if (fc.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
-                File file = fc.getSelectedFile();
-                txtAvatarPath.setText(file.getAbsolutePath());
-                ImageIcon icon = new ImageIcon(new ImageIcon(file.getAbsolutePath())
-                        .getImage().getScaledInstance(100, 100, Image.SCALE_SMOOTH));
-                lblAvatarPreview.setIcon(icon);
-                lblAvatarPreview.setText("");
+                updateAvatarPreview(fc.getSelectedFile().getAbsolutePath());
             }
         });
 
-        JButton btnSave = new JButton("Lưu thông tin");
         btnSave.addActionListener(e -> {
-            // Gọi hàm kiểm tra dữ liệu trước khi cho phép xác nhận
             if (validateInput()) {
                 confirmed = true;
                 dispose();
             }
         });
 
-        JPanel bp = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        bp.add(btnSave);
-        bp.add(new JButton("Hủy") {{
-            addActionListener(x -> dispose());
-        }});
+        btnCancel.addActionListener(e -> dispose());
+    }
 
-        add(new JScrollPane(formPanel), BorderLayout.CENTER);
-        add(bp, BorderLayout.SOUTH);
+    // Hàm bổ trợ để cập nhật ảnh (dùng chung cho cả thêm và sửa)
+    private void updateAvatarPreview(String path) {
+        if (path != null && !path.isEmpty()) {
+            File file = new File(path);
+            if (file.exists()) {
+                txtAvatarPath.setText(path);
+                ImageIcon icon = new ImageIcon(new ImageIcon(path)
+                        .getImage().getScaledInstance(100, 100, Image.SCALE_SMOOTH));
+                lblAvatarPreview.setIcon(icon);
+                lblAvatarPreview.setText("");
+            }
+        }
     }
 
     private static final String DATE_PATTERN = "dd/MM/yyyy";

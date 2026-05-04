@@ -21,7 +21,7 @@ public class EmployeeDTO {
     private String avatar;
     private String education;
     private String experience;
-
+    private int age;
     // 3. Thông tin từ các bảng danh mục (JOIN)
     private String deptName;
     private String posName;
@@ -207,6 +207,14 @@ public class EmployeeDTO {
 
     public double getCoefficient() {
         return coefficient;
+    }
+
+    public int getAge() {
+        return age;
+    }
+
+    public void setAge(int age) {
+        this.age = age;
     }
 
     public void setCoefficient(double coefficient) {
