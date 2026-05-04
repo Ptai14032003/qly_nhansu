@@ -47,21 +47,38 @@ public class UserDAO {
 
     public List<User> findAll() throws Exception {
         List<User> list = new ArrayList<>();
-        String sql = "SELECT * FROM users";
+        String sql = "SELECT u.*, e.emp_name AS emp_name " +
+                "FROM users u " +
+                "LEFT JOIN employees e ON u.emp_id = e.id";
 
         Connection conn = DBConnection.getConnection();
         Statement st = conn.createStatement();
         ResultSet rs = st.executeQuery(sql);
 
         while (rs.next()) {
-            list.add(new User(
+            User u = new User(
                     rs.getInt("id"),
                     rs.getString("username"),
                     rs.getString("password"),
                     rs.getInt("role"),
                     (Integer) rs.getObject("emp_id")
-            ));
+            );
+
+// 🔥 THÊM DÒNG NÀY
+            u.setEmpName(rs.getString("emp_name"));
+
+            list.add(u);
         }
         return list;
+    }
+
+    public void deleteUser(int id) throws Exception {
+        String sql = "DELETE FROM users WHERE id = ?";
+
+        Connection conn = DBConnection.getConnection();
+        PreparedStatement ps = conn.prepareStatement(sql);
+
+        ps.setInt(1, id);
+        ps.executeUpdate();
     }
 }

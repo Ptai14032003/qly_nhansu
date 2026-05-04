@@ -26,7 +26,7 @@ public class MainController {
 
     public void initSystem() {
         // Bước 1: Xóa toàn bộ menu cũ để tránh trùng lặp (nếu MainLayout hỗ trợ)
-        // mainLayout.clearMenu();
+        mainLayout.clearMenu();
 
         // 2. Lấy trang nhân viên từ Controller con
         EmployeeView empPage = employeeController.getEmployeePage();
@@ -40,21 +40,21 @@ public class MainController {
         int role = currentUser.getRole();
 
         if (role == 0) { // ADMIN
-            mainLayout.addMenuItem("Trang chủ", homePage);
-            mainLayout.addMenuItem("Quản lý phòng ban", deptPage);
-            mainLayout.addMenuItem("Quản lý nhân viên", empPage);
-            mainLayout.addMenuItem("Quản lý User", userPage);
+//            mainLayout.addMenuLink("Trang chủ", homePage);
+            mainLayout.addMenuLink("Quản lý phòng ban", departmentController.getDepartmentPage());
+            mainLayout.addMenuLink("Quản lý nhân viên", empPage);
+            mainLayout.addMenuLink("Quản lý User", userPage);
         }
         else if (role == 1) { // MANAGER
-            mainLayout.addMenuItem("Trang chủ", homePage);
-            mainLayout.addMenuItem("Quản lý nhân viên", empPage);
+//            mainLayout.addMenuLink("Trang chủ", homePage);
+            mainLayout.addMenuLink("Quản lý nhân viên", empPage);
         }
         else { // EMPLOYEE
-            mainLayout.addMenuItem("Trang chủ", homePage);
+//            mainLayout.addMenuLink("Trang chủ", homePage);
         }
 
         mainLayout.setVisible(true);
-        mainLayout.showPage("Trang chủ");
+        mainLayout.showPage("Quản lý nhân viên");
 
         mainLayout.addMenuAction("Đăng xuất", () -> {
             AppNavigator.logout(mainLayout);
