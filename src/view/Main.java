@@ -4,8 +4,9 @@ import controller.MainController;
 
 public class Main {
     public static void main(String[] args) {
-        // MainApp bây giờ chỉ biết mỗi MainController
-        MainController sysAdmin = new MainController();
-        sysAdmin.initSystem();
+        // Chạy giao diện trên luồng sự kiện của Swing (Khuyên dùng)
+        javax.swing.SwingUtilities.invokeLater(() -> {
+            MainController controller = new MainController();
+        });
     }
 }
