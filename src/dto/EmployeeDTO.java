@@ -83,4 +83,8 @@ public class EmployeeDTO {
     public void setTotalSalary(double totalSalary) {
         this.totalSalary = totalSalary;
     }
+    @Override
+    public String toString() {
+        return empName;
+    }
 }

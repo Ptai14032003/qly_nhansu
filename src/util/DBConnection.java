@@ -7,9 +7,9 @@ import java.sql.SQLException;
 public class DBConnection {
     public static Connection getConnection() throws SQLException {
         return DriverManager.getConnection(
-                "jdbc:mysql://127.0.0.1:3306/qly_nhansu",
-                "root",
-                "123456"
+                "jdbc:mysql://192.168.1.233:3306/qly_nhansu",
+                "duc123",
+                "123456a@"
         );
     }
 }

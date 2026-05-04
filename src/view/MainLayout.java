@@ -64,6 +64,37 @@ public class MainLayout extends JFrame {
         sidebar.add(btn);
         mainContent.add(pagePanel, name);
     }
+    public void addMenuAction(String name, Runnable action) {
+        JButton btn = new JButton(name);
+        btn.setFont(new Font("Segoe UI", Font.BOLD, 14));
+
+        btn.setForeground(Color.WHITE);
+        btn.setBackground(new Color(34, 45, 50));
+
+        btn.setContentAreaFilled(false);
+        btn.setOpaque(true);
+        btn.setBorderPainted(false);
+        btn.setFocusPainted(false);
+
+        btn.setHorizontalAlignment(SwingConstants.LEFT);
+        btn.setBorder(BorderFactory.createEmptyBorder(15, 20, 15, 20));
+
+        // hover giống bạn
+        btn.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                btn.setBackground(new Color(41, 128, 185));
+            }
+
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                btn.setBackground(new Color(34, 45, 50));
+            }
+        });
+
+        // 👉 KHÔNG dùng cardLayout nữa
+        btn.addActionListener(e -> action.run());
+
+        sidebar.add(btn);
+    }
 
     public void showPage(String name) {
         cardLayout.show(mainContent, name);
