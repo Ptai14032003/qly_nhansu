@@ -7,8 +7,6 @@ import view.EmployeeView;
 import view.MainLayout;
 import view.UserView;
 
-import javax.swing.*;
-
 public class MainController {
     private MainLayout mainLayout;
     private EmployeeController employeeController;
@@ -23,12 +21,12 @@ public class MainController {
         this.mainLayout = new MainLayout();
         this.employeeController = new EmployeeController();
         this.departmentController = new DepartmentController();
+        initSystem();
     }
 
     public void initSystem() {
-        // 1. Trang chủ (Tạo nhanh một Panel)
-        JPanel homePage = new JPanel();
-        homePage.add(new JLabel("CHÀO MỪNG BẠN ĐẾN VỚI HỆ THỐNG QUẢN LÝ NHÂN SỰ"));
+        // Bước 1: Xóa toàn bộ menu cũ để tránh trùng lặp (nếu MainLayout hỗ trợ)
+        // mainLayout.clearMenu();
 
         // 2. Lấy trang nhân viên từ Controller con
         EmployeeView empPage = employeeController.getEmployeePage();
@@ -55,7 +53,6 @@ public class MainController {
             mainLayout.addMenuItem("Trang chủ", homePage);
         }
 
-        // 4. Hiển thị
         mainLayout.setVisible(true);
         mainLayout.showPage("Trang chủ");
 

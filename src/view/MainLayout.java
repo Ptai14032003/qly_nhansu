@@ -19,50 +19,53 @@ public class MainLayout extends JFrame {
         setLayout(new BorderLayout());
 
         // 1. Sidebar bên trái
-        sidebar = new JPanel(new GridLayout(12, 1, 0, 5));
+        sidebar = new JPanel();
+        sidebar.setLayout(new BoxLayout(sidebar, BoxLayout.Y_AXIS));
         sidebar.setBackground(new Color(45, 62, 80));
         sidebar.setPreferredSize(new Dimension(230, 0));
         add(sidebar, BorderLayout.WEST);
 
-        // 2. Vùng nội dung chính (Dùng CardLayout để chuyển trang)
+        // 2. Vùng nội dung chính
         cardLayout = new CardLayout();
         mainContent = new JPanel(cardLayout);
         add(mainContent, BorderLayout.CENTER);
     }
 
-    // Hàm để thêm một mục menu và trang tương ứng
-    // Khai báo màu sắc đặc trưng (Thương hiệu)
-    public void addMenuItem(String name, JPanel pagePanel) {
+    public void addMenuLink(String name, JPanel pagePanel) {
         JButton btn = new JButton(name);
+        btn.setMaximumSize(new Dimension(Integer.MAX_VALUE, 50)); // Nút trải dài theo sidebar
         btn.setFont(new Font("Segoe UI", Font.BOLD, 14));
-
-        // THIẾT LẬP MÀU SẮC
-        btn.setForeground(Color.WHITE);           // Chữ trắng
-        btn.setBackground(new Color(34, 45, 50)); // Nền xám đen
-
-        // KHẮC PHỤC LỖI HIỂN THỊ
-        btn.setContentAreaFilled(false); // Vô hiệu hóa vùng phủ mặc định
-        btn.setOpaque(true);             // Cho phép hiển thị màu nền tự chọn
-        btn.setBorderPainted(false);     // Tắt đường viền thô của Swing
+        btn.setForeground(Color.WHITE);
+        btn.setBackground(new Color(34, 45, 50));
         btn.setFocusPainted(false);
-
+        btn.setBorderPainted(false);
+        btn.setOpaque(true);
         btn.setHorizontalAlignment(SwingConstants.LEFT);
-        btn.setBorder(BorderFactory.createEmptyBorder(15, 20, 15, 20));
-
-        // Hiệu ứng hover cho nút (Đổi màu khi di chuột vào)
+        btn.setBorder(BorderFactory.createEmptyBorder(0, 20, 0, 0));
+        
+        // Hiệu ứng Hover
         btn.addMouseListener(new java.awt.event.MouseAdapter() {
-            public void mouseEntered(java.awt.event.MouseEvent evt) {
-                btn.setBackground(new Color(41, 128, 185)); // Xanh dương khi di chuột
+            public void mouseEntered(java.awt.event.MouseEvent e) {
+                btn.setBackground(new Color(41, 128, 185));
             }
 
-            public void mouseExited(java.awt.event.MouseEvent evt) {
-                btn.setBackground(new Color(34, 45, 50)); // Quay lại màu cũ
+            public void mouseExited(java.awt.event.MouseEvent e) {
+                btn.setBackground(new Color(34, 45, 50));
             }
         });
 
-        btn.addActionListener(e -> cardLayout.show(mainContent, name));
         sidebar.add(btn);
+        sidebar.add(Box.createRigidArea(new Dimension(0, 5))); // Khoảng cách giữa các nút
+
         mainContent.add(pagePanel, name);
+        menuButtons.put(name, btn);
+    }
+
+    // Để Controller đăng ký sự kiện click cho từng link
+    public void setMenuEvent(String name, java.awt.event.ActionListener listener) {
+        if (menuButtons.containsKey(name)) {
+            menuButtons.get(name).addActionListener(listener);
+        }
     }
     public void addMenuAction(String name, Runnable action) {
         JButton btn = new JButton(name);
