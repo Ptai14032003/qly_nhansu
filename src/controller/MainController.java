@@ -17,8 +17,9 @@ public class MainController {
     public MainController(User user) {
         // Khởi tạo khung xương và các controller con
         this.currentUser = user;
-        this.userController = new UserController();
         this.mainLayout = new MainLayout();
+        this.userController = new UserController(mainLayout);
+
         this.employeeController = new EmployeeController();
         this.departmentController = new DepartmentController();
         initSystem();
@@ -32,6 +33,7 @@ public class MainController {
         EmployeeView empPage = employeeController.getEmployeePage();
         DepartmentView deptPage = departmentController.getDepartmentPage();
         UserView userPage = userController.getView();
+
 //        // 3. Đăng ký vào Menu của MainLayout
 //        mainLayout.addMenuItem("Trang chủ", homePage);
 //        mainLayout.addMenuItem("Quản lý phòng ban", deptPage);
@@ -44,6 +46,8 @@ public class MainController {
             mainLayout.addMenuLink("Quản lý phòng ban", departmentController.getDepartmentPage());
             mainLayout.addMenuLink("Quản lý nhân viên", empPage);
             mainLayout.addMenuLink("Quản lý User", userPage);
+            mainLayout.addPage("UserForm", userController.getFormView());
+
         }
         else if (role == 1) { // MANAGER
 //            mainLayout.addMenuLink("Trang chủ", homePage);

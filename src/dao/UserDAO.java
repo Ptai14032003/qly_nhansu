@@ -81,4 +81,43 @@ public class UserDAO {
         ps.setInt(1, id);
         ps.executeUpdate();
     }
+
+    // Trong file UserDAO.java
+    public List<User> findWithPaging(int page, int pageSize, String keyword, String sortBy) {
+        List<User> list = new ArrayList<>();
+        // Tính toán vị trí bắt đầu lấy dữ liệu
+        int offset = (page - 1) * pageSize;
+
+        // Câu lệnh SQL: keyword dùng cho LIKE, sortBy dùng cho ORDER BY
+        // Lưu ý: Không dùng '?' cho ORDER BY vì JDBC không hỗ trợ tham số hóa cho tên cột/thứ tự
+        String sql = "SELECT u.*, e.emp_name as empName FROM users u " +
+                "LEFT JOIN employees e ON u.emp_id = e.id " +
+                "WHERE u.username LIKE ? " +
+                "ORDER BY " + sortBy + " LIMIT ? OFFSET ?";
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, "%" + keyword + "%");
+            ps.setInt(2, pageSize);
+            ps.setInt(3, offset);
+
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                // Mapping dữ liệu từ ResultSet vào Object User (giữ nguyên logic cũ của bạn)
+                User user = new User(
+                        rs.getInt("id"),
+                        rs.getString("username"),
+                        rs.getString("password"),
+                        rs.getInt("role"),
+                        rs.getInt("emp_id")
+                );
+                user.setEmpName(rs.getString("empName"));
+                list.add(user);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
 }
