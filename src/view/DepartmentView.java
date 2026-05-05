@@ -15,7 +15,7 @@ public class DepartmentView extends JPanel {
     public DepartmentView() {
         setLayout(new BorderLayout());
         setBackground(Color.WHITE);
-
+        //agfdjhdasgf
         // Header
         JLabel title = new JLabel("QUẢN LÝ PHÒNG BAN", JLabel.CENTER);
         title.setFont(new Font("Segoe UI", Font.BOLD, 22));
