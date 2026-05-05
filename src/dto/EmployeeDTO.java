@@ -220,4 +220,8 @@ public class EmployeeDTO {
     public void setCoefficient(double coefficient) {
         this.coefficient = coefficient;
     }
+    @Override
+    public String toString() {
+        return empName;
+    }
 }
