@@ -7,7 +7,9 @@ import view.AddEmployeeDialog.ComboboxItem;
 import javax.swing.*;
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
@@ -18,17 +20,18 @@ public class EmployeeDAO {
     private static final String PHONE_REGEX = "^\\d{10,11}$";
 
     // --- 1. LẤY TẤT CẢ NHÂN VIÊN (Để hiện thị lên JTable) ---
-    public List<EmployeeDTO> getAllEmployees() {
+    public List<EmployeeDTO> getAllEmployees(int page, int pageSize) {
         List<EmployeeDTO> list = new ArrayList<>();
         // Lấy coefficient từ bảng p (positions) thay vì bảng s
-        String sql = "SELECT e.*, d.dept_name, p.pos_name, p.coefficient, " + // PHẢI CÓ p.coefficient
+        String sql = "SELECT e.*, d.dept_name, p.pos_name, p.coefficient, " +
                 "ed.birthday, ed.gender, ed.address, ed.avatar, ed.id_card, ed.education, ed.experience, " +
                 "s.base_salary, s.allowance, s.bonus " +
                 "FROM employees e " +
                 "LEFT JOIN departments d ON e.dept_id = d.id " +
-                "LEFT JOIN positions p ON e.pos_id = p.id " + // Kết nối bảng positions
+                "LEFT JOIN positions p ON e.pos_id = p.id " +
                 "LEFT JOIN employee_details ed ON e.id = ed.emp_id " +
-                "LEFT JOIN salaries s ON e.id = s.emp_id";
+                "LEFT JOIN salaries s ON e.id = s.emp_id " + // Đảm bảo có dấu cách ở cuối này
+                "WHERE e.status = 1"; // Hoặc có dấu cách ở đầu chữ WHERE
 
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
@@ -39,7 +42,7 @@ public class EmployeeDAO {
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Error getAllEmployees", e);
         }
-        return list;
+        return searchEmployees("", 0, "Mặc định", page, pageSize);
     }
 
     // --- 2. LẤY CHI TIẾT NHÂN VIÊN (Có tính toán lương trực tiếp) ---
@@ -211,16 +214,127 @@ public class EmployeeDAO {
 
     // --- 5. XÓA NHÂN VIÊN ---
     public boolean deleteEmployee(int id) {
-        // Do có ràng buộc khóa ngoại (FK), bạn nên xóa ở employee_details trước hoặc để ON DELETE CASCADE trong DB[cite: 1]
-        String sql = "DELETE FROM employees WHERE id = ?";
+        // Thay vì DELETE, chúng ta UPDATE status về 0 (đã nghỉ việc)
+        String sql = "UPDATE employees SET status = 0 WHERE id = ?";
+
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
+
             ps.setInt(1, id);
+
+            // Trả về true nếu có ít nhất 1 dòng được cập nhật thành công
             return ps.executeUpdate() > 0;
+
         } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Delete failed", e);
+            LOGGER.log(Level.SEVERE, "Lỗi khi chuyển trạng thái nghỉ việc (Soft Delete)", e);
             return false;
         }
+    }
+
+    public List<EmployeeDTO> searchEmployees(String keyword, int deptId, String sortType, int page, int pageSize) {
+        List<EmployeeDTO> list = new ArrayList<>();
+        // Tính toán vị trí bắt đầu lấy dữ liệu
+        int offset = (page - 1) * pageSize;
+
+        StringBuilder sql = new StringBuilder(
+                "SELECT e.*, d.dept_name, p.pos_name, p.coefficient, " +
+                        "ed.birthday, ed.gender, ed.address, ed.avatar, ed.id_card, ed.education, ed.experience, " +
+                        "s.base_salary, s.allowance, s.bonus, " +
+                        "((s.base_salary * p.coefficient) + s.allowance + s.bonus) AS total_val " +
+                        "FROM employees e " +
+                        "LEFT JOIN departments d ON e.dept_id = d.id " +
+                        "LEFT JOIN positions p ON e.pos_id = p.id " +
+                        "LEFT JOIN employee_details ed ON e.id = ed.emp_id " +
+                        "LEFT JOIN salaries s ON e.id = s.emp_id " +
+                        "WHERE e.status = 1 "
+        );
+
+        // Thêm điều kiện lọc
+        if (keyword != null && !keyword.isEmpty()) {
+            sql.append(" AND (e.emp_name LIKE ? OR e.id LIKE ?) ");
+        }
+        if (deptId > 0) {
+            sql.append(" AND e.dept_id = ? ");
+        }
+
+        // Sắp xếp
+        switch (sortType) {
+            case "Tên (A-Z)":
+                sql.append(" ORDER BY e.emp_name ASC");
+                break;
+            case "Tên (Z-A)":
+                sql.append(" ORDER BY e.emp_name DESC");
+                break;
+            case "Lương: Thấp đến Cao":
+                sql.append(" ORDER BY total_val ASC");
+                break;
+            case "Lương: Cao đến Thấp":
+                sql.append(" ORDER BY total_val DESC");
+                break;
+            default:
+                sql.append(" ORDER BY e.id ASC");
+                break;
+        }
+
+        // PHÂN TRANG: Thêm LIMIT và OFFSET
+        sql.append(" LIMIT ? OFFSET ?");
+
+        try (java.sql.Connection conn = DBConnection.getConnection();
+             java.sql.PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+
+            int paramIndex = 1;
+            if (keyword != null && !keyword.isEmpty()) {
+                ps.setString(paramIndex++, "%" + keyword + "%");
+                ps.setString(paramIndex++, "%" + keyword + "%");
+            }
+            if (deptId > 0) {
+                ps.setInt(paramIndex++, deptId);
+            }
+
+            // Gán tham số cho phân trang
+            ps.setInt(paramIndex++, pageSize);
+            ps.setInt(paramIndex++, offset);
+
+            java.sql.ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                // Mapping dữ liệu vào EmployeeDTO (giữ nguyên logic mapping cũ của bạn)
+                list.add(mapEmployee(rs));
+            }
+        } catch (java.sql.SQLException e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
+
+    // Hàm bổ trợ đếm tổng số bản ghi (Dùng để tính tổng số trang)
+    public int getTotalCount(String keyword, int deptId) {
+        StringBuilder sql = new StringBuilder("SELECT COUNT(*) FROM employees e WHERE e.status = 1");
+
+        if (keyword != null && !keyword.isEmpty()) {
+            sql.append(" AND (e.emp_name LIKE ? OR e.id LIKE ?)");
+        }
+        if (deptId > 0) {
+            sql.append(" AND e.dept_id = ?");
+        }
+
+        try (java.sql.Connection conn = DBConnection.getConnection();
+             java.sql.PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+
+            int idx = 1;
+            if (keyword != null && !keyword.isEmpty()) {
+                ps.setString(idx++, "%" + keyword + "%");
+                ps.setString(idx++, "%" + keyword + "%");
+            }
+            if (deptId > 0) {
+                ps.setInt(idx++, deptId);
+            }
+
+            java.sql.ResultSet rs = ps.executeQuery();
+            if (rs.next()) return rs.getInt(1);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return 0;
     }
 
     // --- HÀM HỖ TRỢ MAPPING DỮ LIỆU ---
@@ -259,6 +373,107 @@ public class EmployeeDAO {
         emp.setTotalSalary(total); // Đảm bảo DTO của bạn có field totalSalary
 
         return emp;
+    }
+
+    public Map<String, Object> getDashboardStats() {
+        Map<String, Object> stats = new HashMap<>();
+
+        // Khởi tạo giá trị mặc định
+        stats.put("totalEmp", 0);
+        stats.put("totalSalary", 0.0);
+        stats.put("totalDept", 0);
+
+        // SQL tính tổng lương = lương cơ bản + phụ cấp + thưởng
+        String sqlCount = "SELECT COUNT(*) FROM employees";
+        String sqlDept = "SELECT COUNT(*) FROM departments";
+        String sqlSalary = "SELECT SUM(base_salary + allowance + bonus) FROM salaries";
+
+        try (Connection conn = DBConnection.getConnection()) {
+            // 1. Lấy tổng nhân viên
+            PreparedStatement ps1 = conn.prepareStatement(sqlCount);
+            ResultSet rs1 = ps1.executeQuery();
+            if (rs1.next()) stats.put("totalEmp", rs1.getInt(1));
+
+            // 2. Lấy tổng phòng ban
+            PreparedStatement ps2 = conn.prepareStatement(sqlDept);
+            ResultSet rs2 = ps2.executeQuery();
+            if (rs2.next()) stats.put("totalDept", rs2.getInt(1));
+
+            // 3. Lấy tổng quỹ lương
+            PreparedStatement ps3 = conn.prepareStatement(sqlSalary);
+            ResultSet rs3 = ps3.executeQuery();
+            if (rs3.next()) stats.put("totalSalary", rs3.getDouble(1));
+
+        } catch (SQLException e) {
+            System.err.println("Lỗi truy vấn Dashboard: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return stats;
+    }
+
+
+    //Biểu Đồ
+    public Map<String, Integer> getEmployeeCountByDept() {
+        Map<String, Integer> data = new HashMap<>();
+        // Câu lệnh JOIN để lấy tên phòng và đếm số nhân viên thuộc phòng đó
+        String sql = "SELECT d.dept_name, COUNT(e.id) AS total " +
+                "FROM departments d " +
+                "LEFT JOIN employees e ON d.id = e.dept_id " +
+                "GROUP BY d.dept_name";
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+
+            while (rs.next()) {
+                // Đưa dữ liệu vào Map: Key là tên phòng, Value là số lượng[cite: 1]
+                data.put(rs.getString("dept_name"), rs.getInt("total"));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return data;
+    }
+
+    //5 nhân viên mới
+    public List<EmployeeDTO> getRecentEmployees() {
+        List<EmployeeDTO> list = new ArrayList<>();
+
+        // Truy vấn kết hợp các bảng theo đúng schema qly_nhansu
+        String sql = "SELECT e.emp_name, ed.gender, e.hire_date, ed.avatar, " + // Thêm ed.avatar vào đây
+                "(YEAR(CURDATE()) - YEAR(ed.birthday)) AS calculated_age, " +
+                "p.pos_name, d.dept_name " +
+                "FROM employees e " +
+                "LEFT JOIN employee_details ed ON e.id = ed.emp_id " +
+                "LEFT JOIN departments d ON e.dept_id = d.id " +
+                "LEFT JOIN positions p ON e.pos_id = p.id " +
+                "ORDER BY e.id DESC LIMIT 5";
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+
+            while (rs.next()) {
+                EmployeeDTO emp = new EmployeeDTO();
+                // Lấy dữ liệu từ bảng employees[cite: 1]
+                emp.setEmpName(rs.getString("emp_name"));
+                emp.setHireDate(rs.getDate("hire_date"));
+
+                // Lấy dữ liệu từ bảng employee_details[cite: 1]
+                emp.setGender(rs.getInt("gender"));
+                // Lấy tuổi đã được tính toán từ SQL
+                emp.setAge(rs.getInt("calculated_age"));
+
+                // Lấy dữ liệu từ bảng positions và departments[cite: 1]
+                emp.setPosName(rs.getString("pos_name"));
+                emp.setDeptName(rs.getString("dept_name"));
+                emp.setAvatar(rs.getString("avatar"));
+                list.add(emp);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return list;
     }
 
     // --- VALIDATION & COMBOBOX ---
