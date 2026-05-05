@@ -139,7 +139,7 @@ public class UserController {
         return view;
     }
     public void     loadEmployeesToComboBox() {
-        List<EmployeeDTO> list = employeeDAO.getAllEmployees();
+        List<EmployeeDTO> list = employeeDAO.getAllEmployeeNames();
 
         JComboBox<EmployeeDTO> cbEmployee = formView.getCbEmployee();
         cbEmployee.removeAllItems();

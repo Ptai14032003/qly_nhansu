@@ -30,9 +30,9 @@ public class MainController {
     public void initSystem() {
         // --- BƯỚC 1: ĐĂNG KÝ MENU VÀ TRANG ---
         // addMenuLink sẽ vừa tạo nút trên thanh bên, vừa add Panel vào CardLayout
-        mainLayout.addMenuLink("Trang chủ", homeController.getHomePage());
-        mainLayout.addMenuLink("Quản lý phòng ban", departmentController.getDepartmentPage());
-        mainLayout.addMenuLink("Quản lý nhân viên", employeeController.getEmployeePage());
+//        mainLayout.addMenuLink("Trang chủ", homeController.getHomePage());
+//        mainLayout.addMenuLink("Quản lý phòng ban", departmentController.getDepartmentPage());
+//        mainLayout.addMenuLink("Quản lý nhân viên", employeeController.getEmployeePage());
 
         // --- BƯỚC 2: THIẾT LẬP SỰ KIỆN CLICK CHO TỪNG NÚT ---
 
@@ -60,7 +60,6 @@ public class MainController {
 
         // 2. Lấy trang nhân viên từ Controller con
         EmployeeView empPage = employeeController.getEmployeePage();
-        DepartmentView deptPage = departmentController.getDepartmentPage();
         UserView userPage = userController.getView();
 
 //        // 3. Đăng ký vào Menu của MainLayout
@@ -71,7 +70,7 @@ public class MainController {
         int role = currentUser.getRole();
 
         if (role == 0) { // ADMIN
-//            mainLayout.addMenuLink("Trang chủ", homePage);
+            mainLayout.addMenuLink("Trang chủ", homeController.getHomePage());
             mainLayout.addMenuLink("Quản lý phòng ban", departmentController.getDepartmentPage());
             mainLayout.addMenuLink("Quản lý nhân viên", empPage);
             mainLayout.addMenuLink("Quản lý User", userPage);
@@ -83,7 +82,14 @@ public class MainController {
             mainLayout.addMenuLink("Quản lý nhân viên", empPage);
         }
         else { // EMPLOYEE
-//            mainLayout.addMenuLink("Trang chủ", homePage);
+            mainLayout.addMenuLink("Thông tin cá nhân", employeeController.getProfilePage());
+            mainLayout.setMenuEvent("Thông tin cá nhân", e -> {
+                mainLayout.showPage("Thông tin cá nhân");
+                // Lấy ID từ currentUser mà MainController đang giữ
+                employeeController.showIndividualProfile(currentUser.getEmpId());
+            });
+            mainLayout.showPage("Thông tin cá nhân");
+            employeeController.showIndividualProfile(currentUser.getEmpId());
         }
 
         // --- BƯỚC 3: KHỞI TẠO MẶC ĐỊNH ---
@@ -91,7 +97,6 @@ public class MainController {
         homeController.refreshData();     // Đổ dữ liệu vào các thẻ và biểu đồ tròn[cite: 1]
 
         mainLayout.setVisible(true);
-        mainLayout.showPage("Quản lý nhân viên");
 
         mainLayout.addMenuAction("Đăng xuất", () -> {
             AppNavigator.logout(mainLayout);

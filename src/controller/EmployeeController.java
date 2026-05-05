@@ -5,6 +5,7 @@ import dao.EmployeeDAO;
 import dto.DepartmentDTO;
 import dto.EmployeeDTO;
 import view.AddEmployeeDialog;
+import view.EmployeeProfileView;
 import view.EmployeeView;
 
 import javax.swing.*;
@@ -24,11 +25,13 @@ public class EmployeeController {
     private DepartmentDAO departmentDAO;
     private int currentPage = 1;
     private final int PAGE_SIZE = 10;
+    private EmployeeProfileView profileView;
 
     public EmployeeController() {
         this.dao = new EmployeeDAO();
         this.departmentDAO = new DepartmentDAO();
         this.empView = new EmployeeView();
+        this.profileView = new EmployeeProfileView();
         empView.getTxtSearch().getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
             @Override
             public void insertUpdate(javax.swing.event.DocumentEvent e) {
@@ -62,7 +65,15 @@ public class EmployeeController {
         refreshData();
 
     }
-
+    public EmployeeProfileView getProfilePage() {
+        return profileView;
+    }
+    public void showIndividualProfile(int empId) {
+        EmployeeDTO emp = dao.getEmployeeById(empId);
+        if (emp != null) {
+            profileView.setProfileData(emp);
+        }
+    }
     private void setupEvents() {
         // 1. Nút Xem chi tiết
         this.empView.onDetail(this::showDetail);
