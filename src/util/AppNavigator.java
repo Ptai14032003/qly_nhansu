@@ -1,6 +1,7 @@
 package util;
 
 import controller.LoginController;
+import view.MainLayout;
 
 import javax.swing.*;
 
@@ -18,5 +19,9 @@ public class AppNavigator {
         SwingUtilities.invokeLater(() -> {
             new LoginController().init();
         });
+    }
+
+    public static void navigate(MainLayout layout, JPanel panel, String name) {
+        layout.showPage(name);
     }
 }

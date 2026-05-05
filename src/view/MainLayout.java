@@ -1,5 +1,7 @@
 package view;
 
+import controller.UserController;
+
 import javax.swing.*;
 import java.awt.*;
 import java.util.HashMap;
@@ -10,6 +12,7 @@ public class MainLayout extends JFrame {
     private JPanel mainContent;
     private CardLayout cardLayout;
     private Map<String, JButton> menuButtons = new HashMap<>();
+//    UserController userController = new UserController(mainLayout);
 
     public MainLayout() {
         setTitle("Hệ thống Quản lý Nhân Sự");
@@ -30,7 +33,9 @@ public class MainLayout extends JFrame {
         mainContent = new JPanel(cardLayout);
         add(mainContent, BorderLayout.CENTER);
     }
-
+    public void addPage(String name, JPanel panel) {
+        mainContent.add(panel, name);
+    }
     public void addMenuLink(String name, JPanel pagePanel) {
         JButton btn = new JButton(name);
         btn.setMaximumSize(new Dimension(Integer.MAX_VALUE, 50)); // Nút trải dài theo sidebar
