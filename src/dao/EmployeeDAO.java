@@ -44,7 +44,27 @@ public class EmployeeDAO {
         }
         return searchEmployees("", 0, "Mặc định", page, pageSize);
     }
+    //
+    public List<EmployeeDTO> getAllEmployeeNames() {
+        List<EmployeeDTO> list = new ArrayList<>();
+        // Chỉ select những gì cần thiết để tối ưu tốc độ
+        String sql = "SELECT id, emp_name FROM employees WHERE status = 1";
 
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+
+            while (rs.next()) {
+                EmployeeDTO emp = new EmployeeDTO();
+                emp.setId(rs.getInt("id"));
+                emp.setEmpName(rs.getString("emp_name"));
+                list.add(emp);
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Lỗi lấy danh sách tên nhân viên", e);
+        }
+        return list; // Trả về đúng danh sách vừa lấy
+    }
     // --- 2. LẤY CHI TIẾT NHÂN VIÊN (Có tính toán lương trực tiếp) ---
     public EmployeeDTO getEmployeeById(int id) {
         // THÊM "WHERE e.id = ?" VÀO CUỐI CÂU SQL
