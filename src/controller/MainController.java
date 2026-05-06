@@ -6,29 +6,41 @@ import view.EmployeeView;
 import view.MainLayout;
 import view.SalaryView;
 import view.UserView;
+import view.AttendanceView; // ✅ thêm
 
 public class MainController {
+
     private MainLayout mainLayout;
     private HomeController homeController;
     private EmployeeController employeeController;
     private DepartmentController departmentController;
-    private User currentUser;
     private UserController userController;
+
     private SalaryController salaryController;
 
     public MainController(User user) {
-        // Khởi tạo khung xương và các controller con
+
         this.currentUser = user;
+
         this.mainLayout = new MainLayout();
         this.homeController = new HomeController();
         this.userController = new UserController(mainLayout);
         this.salaryController = new SalaryController();
+
         this.employeeController = new EmployeeController();
         this.departmentController = new DepartmentController();
+
+        // ✅ FIX Ở ĐÂY
+        AttendanceView attendanceView = new AttendanceView();
+        this.attendanceController = new AttendanceController(attendanceView);
+
+        this.mainLayout = new MainLayout();
+
         initSystem();
     }
 
     public void initSystem() {
+
         // --- BƯỚC 1: ĐĂNG KÝ MENU VÀ TRANG ---
 
         // --- BƯỚC 2: THIẾT LẬP SỰ KIỆN CLICK CHO TỪNG NÚT ---
@@ -57,11 +69,12 @@ public class MainController {
             salaryController.refreshData(); // Tải dữ liệu lương mới nhất khi click
         });
         // Bước 1: Xóa toàn bộ menu cũ để tránh trùng lặp (nếu MainLayout hỗ trợ)
+
         mainLayout.clearMenu();
 
-        // 2. Lấy trang nhân viên từ Controller con
         EmployeeView empPage = employeeController.getEmployeePage();
         UserView userPage = userController.getView();
+
         SalaryView salaryPage = salaryController.getSalaryPage();
 
         int role = currentUser.getRole();
@@ -73,17 +86,20 @@ public class MainController {
             mainLayout.addMenuLink("Quản lý User", userPage);
             mainLayout.addMenuLink("Bảng lương", salaryPage);
             mainLayout.addPage("UserForm", userController.getFormView());
+            mainLayout.addMenuLink("Chấm công", attendanceController.getView());
 
         } else if (role == 1) { // MANAGER
-//            mainLayout.addMenuLink("Trang chủ", homePage);
+            mainLayout.addMenuLink("Trang chủ", homePage);
             mainLayout.addMenuLink("Quản lý nhân viên", empPage);
             mainLayout.addMenuLink("Bảng lương", salaryPage);
+            mainLayout.addMenuLink("Chấm công", attendanceController.getView());
         } else { // EMPLOYEE
             mainLayout.addMenuLink("Thông tin cá nhân", employeeController.getProfilePage());
             mainLayout.setMenuEvent("Thông tin cá nhân", e -> {
                 mainLayout.showPage("Thông tin cá nhân");
                 // Lấy ID từ currentUser mà MainController đang giữ
                 employeeController.showIndividualProfile(currentUser.getEmpId());
+                mainLayout.addMenuLink("Chấm công", attendanceController.getView());
             });
             mainLayout.showPage("Thông tin cá nhân");
             employeeController.showIndividualProfile(currentUser.getEmpId());
@@ -95,9 +111,12 @@ public class MainController {
 
         mainLayout.setVisible(true);
 
+
         mainLayout.addMenuAction("Đăng xuất", () -> {
             AppNavigator.logout(mainLayout);
         });
+
+        mainLayout.setVisible(true);
     }
 
 }
