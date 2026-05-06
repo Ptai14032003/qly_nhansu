@@ -2,11 +2,7 @@ package controller;
 
 import dto.User;
 import util.AppNavigator;
-import view.EmployeeView;
-import view.MainLayout;
-import view.SalaryView;
-import view.UserView;
-import view.AttendanceView; // ✅ thêm
+import view.*;
 
 public class MainController {
 
@@ -15,8 +11,9 @@ public class MainController {
     private EmployeeController employeeController;
     private DepartmentController departmentController;
     private UserController userController;
-
+    private User currentUser;
     private SalaryController salaryController;
+    private AttendanceController attendanceController;
 
     public MainController(User user) {
 
@@ -89,7 +86,7 @@ public class MainController {
             mainLayout.addMenuLink("Chấm công", attendanceController.getView());
 
         } else if (role == 1) { // MANAGER
-            mainLayout.addMenuLink("Trang chủ", homePage);
+            mainLayout.addMenuLink("Trang chủ", homeController.getHomePage());
             mainLayout.addMenuLink("Quản lý nhân viên", empPage);
             mainLayout.addMenuLink("Bảng lương", salaryPage);
             mainLayout.addMenuLink("Chấm công", attendanceController.getView());
