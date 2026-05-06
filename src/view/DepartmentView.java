@@ -17,6 +17,7 @@ public class DepartmentView extends JPanel {
         setLayout(new BorderLayout());
         setBackground(Color.WHITE);
 
+
         // --- Header ---
         JPanel northPanel = new JPanel(new BorderLayout());
         northPanel.setBackground(Color.WHITE);
