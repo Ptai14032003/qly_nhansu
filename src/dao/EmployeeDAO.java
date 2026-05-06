@@ -201,7 +201,7 @@ public class EmployeeDAO {
     }
 
     // --- 4. CẬP NHẬT NHÂN VIÊN (Transaction 2 bảng) ---
-    public boolean updateEmployee(EmployeeDTO emp) {
+    public boolean updateEmp(EmployeeDTO emp) {
         Connection conn = null;
         try {
             conn = DBConnection.getConnection();
@@ -261,6 +261,57 @@ public class EmployeeDAO {
         } finally {
             if (conn != null) {
                 try {
+                    conn.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    public boolean updateEmployee(EmployeeDTO emp) {
+        Connection conn = null;
+        try {
+            conn = DBConnection.getConnection();
+            conn.setAutoCommit(false);
+
+            // 1. Chỉ UPDATE email và phone trong bảng employees
+            String sqlEmp = "UPDATE employees SET email=?, phone=? WHERE id=?";
+            PreparedStatement psEmp = conn.prepareStatement(sqlEmp);
+
+            psEmp.setString(1, emp.getEmail());
+            psEmp.setString(2, emp.getPhone());
+            psEmp.setInt(3, emp.getId());
+
+            psEmp.executeUpdate();
+
+            // 2. Chỉ UPDATE address và avatar trong bảng employee_details
+            String sqlDetail = "UPDATE employee_details SET address=?, avatar=? WHERE emp_id=?";
+            PreparedStatement psDetail = conn.prepareStatement(sqlDetail);
+
+            psDetail.setString(1, emp.getAddress());
+            psDetail.setString(2, emp.getAvatar());
+            psDetail.setInt(3, emp.getId());
+
+            psDetail.executeUpdate();
+
+            conn.commit();
+            return true;
+
+        } catch (SQLException e) {
+            if (conn != null) {
+                try {
+                    conn.rollback();
+                } catch (SQLException ex) {
+                    ex.printStackTrace();
+                }
+            }
+            e.printStackTrace();
+            return false;
+        } finally {
+            if (conn != null) {
+                try {
+                    conn.setAutoCommit(true); // Trả lại trạng thái mặc định
                     conn.close();
                 } catch (SQLException e) {
                     e.printStackTrace();

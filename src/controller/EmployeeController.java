@@ -30,14 +30,22 @@ public class EmployeeController {
     private EmployeeProfileView profileView;
     private final SalaryDAO salaryDAO;
     private final SalaryController salaryController;
-
+    private view.EmployeeEditView editView; // Thêm dòng này
+    private JPanel containerPanel;          // Panel dùng CardLayout
+    private CardLayout cardLayout;
+    private int lastViewedId;
     public EmployeeController() {
         this.dao = new EmployeeDAO();
         this.departmentDAO = new DepartmentDAO();
         this.empView = new EmployeeView();
-        this.profileView = new EmployeeProfileView();
         this.salaryDAO = new SalaryDAO();
         this.salaryController = new SalaryController();
+        this.profileView = new EmployeeProfileView();
+        this.editView = new view.EmployeeEditView();
+        this.cardLayout = new CardLayout();
+        this.containerPanel = new JPanel(cardLayout);
+        this.containerPanel.add(profileView, "VIEW");
+        this.containerPanel.add(editView, "EDIT");
         empView.getTxtSearch().getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
             @Override
             public void insertUpdate(javax.swing.event.DocumentEvent e) {
@@ -68,18 +76,60 @@ public class EmployeeController {
         empView.getCbSort().addActionListener(e -> resetAndSearch());
         // Tương tự cho nút "Trước"
         empView.getBtnPrev().addActionListener(e -> goToPrevPage());
+
+        setupProfileEvents();
+
         refreshData();
+
 
     }
 
-    public EmployeeProfileView getProfilePage() {
-        return profileView;
+
+    private void setupProfileEvents() {
+        // 1. Khi nhấn nút "Thay đổi thông tin" ở trang Xem
+        profileView.getBtnEdit().addActionListener(e -> {
+            // Lấy ID nhân viên hiện tại đang xem (bạn có thể lưu biến currentEmpId)
+            // Giả sử profileView đang hiển thị nhân viên nào đó, ta nạp dữ liệu vào editView
+            EmployeeDTO currentEmp = dao.getEmployeeById(lastViewedId);
+            if (currentEmp != null) {
+                editView.setEditData(currentEmp); // Bạn cần viết hàm này bên EmployeeEditView
+                cardLayout.show(containerPanel, "EDIT");
+            }
+        });
+
+        // 2. Khi nhấn nút "Hủy bỏ" ở trang Sửa
+        editView.getBtnCancel().addActionListener(e -> {
+            cardLayout.show(containerPanel, "VIEW");
+        });
+
+        // 3. Khi nhấn nút "Lưu thay đổi" ở trang Sửa
+        editView.getBtnSave().addActionListener(e -> {
+            EmployeeDTO updatedEmp = editView.getEmployeeDataFromInput();
+            if (dao.updateEmployee(updatedEmp)) {
+                JOptionPane.showMessageDialog(null, "Cập nhật thành công!");
+
+                // CẬP NHẬT LẠI DỮ LIỆU MỚI NHẤT VÀO TRANG XEM
+                EmployeeDTO freshData = dao.getEmployeeById(lastViewedId);
+                profileView.setProfileData(freshData);
+
+                cardLayout.show(containerPanel, "VIEW");
+                refreshData();
+            } else {
+                JOptionPane.showMessageDialog(null, "Cập nhật thất bại!");
+            }
+        });
+    }
+
+    public JPanel getProfilePage() {
+        return containerPanel;
     }
 
     public void showIndividualProfile(int empId) {
+        this.lastViewedId = empId;
         EmployeeDTO emp = dao.getEmployeeById(empId);
         if (emp != null) {
             profileView.setProfileData(emp);
+            cardLayout.show(containerPanel, "VIEW");
         }
     }
 
@@ -116,7 +166,7 @@ public class EmployeeController {
             EmployeeDTO updatedEmp = dialog.getEmployeeData();
             if (updatedEmp != null) {
                 updatedEmp.setId(id); // Giữ nguyên ID cũ để Update
-                if (dao.updateEmployee(updatedEmp)) {
+                if (dao.updateEmp(updatedEmp)) {
                     JOptionPane.showMessageDialog(empView, "Cập nhật thông tin thành công!");
                     refreshData(); // Load lại bảng
                 } else {
