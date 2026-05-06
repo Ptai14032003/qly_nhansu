@@ -69,7 +69,6 @@ public class HomeView extends JPanel {
         item.setBackground(Color.WHITE);
         item.setBorder(BorderFactory.createEmptyBorder(10, 5, 10, 5));
         item.setMaximumSize(new Dimension(Integer.MAX_VALUE, 75));
-        System.out.println("Nhân viên: " + dto.getEmpName() + " | Path: " + dto.getAvatar());
 
         JPanel avatar = new JPanel() {
             @Override

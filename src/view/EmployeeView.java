@@ -170,7 +170,7 @@ public class EmployeeView extends JPanel {
                     emp.getEmpName(),
                     emp.getEmail(),
                     emp.getPhone(),
-                    String.format("%,.0f VNĐ", emp.getTotalSalary()),
+                    String.format("%,.0f VNĐ", emp.getBaseSalary() * emp.getCoefficient()),
                     emp.getDeptName(),
                     emp.getPosName(),
                     (emp.getAvatar() != null ? "Đã có" : "N/A"),

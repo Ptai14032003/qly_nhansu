@@ -2,8 +2,10 @@ package controller;
 
 import dao.DepartmentDAO;
 import dao.EmployeeDAO;
+import dao.SalaryDAO;
 import dto.DepartmentDTO;
 import dto.EmployeeDTO;
+import dto.SalaryDTO;
 import view.AddEmployeeDialog;
 import view.EmployeeProfileView;
 import view.EmployeeView;
@@ -26,12 +28,16 @@ public class EmployeeController {
     private int currentPage = 1;
     private final int PAGE_SIZE = 10;
     private EmployeeProfileView profileView;
+    private final SalaryDAO salaryDAO;
+    private final SalaryController salaryController;
 
     public EmployeeController() {
         this.dao = new EmployeeDAO();
         this.departmentDAO = new DepartmentDAO();
         this.empView = new EmployeeView();
         this.profileView = new EmployeeProfileView();
+        this.salaryDAO = new SalaryDAO();
+        this.salaryController = new SalaryController();
         empView.getTxtSearch().getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
             @Override
             public void insertUpdate(javax.swing.event.DocumentEvent e) {
@@ -65,15 +71,18 @@ public class EmployeeController {
         refreshData();
 
     }
+
     public EmployeeProfileView getProfilePage() {
         return profileView;
     }
+
     public void showIndividualProfile(int empId) {
         EmployeeDTO emp = dao.getEmployeeById(empId);
         if (emp != null) {
             profileView.setProfileData(emp);
         }
     }
+
     private void setupEvents() {
         // 1. Nút Xem chi tiết
         this.empView.onDetail(this::showDetail);
@@ -190,52 +199,89 @@ public class EmployeeController {
     }
 
     private void showDetail(int id) {
+        // 1. Lấy thông tin nhân viên từ DAO
         EmployeeDTO emp = dao.getEmployeeById(id);
         if (emp == null) return;
 
+        // 2. TỰ ĐỘNG CẬP NHẬT & LẤY DỮ LIỆU LƯƠNG THÁNG HIỆN TẠI
+        int month = java.time.LocalDate.now().getMonthValue();
+        int year = java.time.LocalDate.now().getYear();
+
+        // Gọi controller để tính toán lại thưởng/phạt dựa trên attendance mới nhất
+        salaryController.calculateMonthlySalary(id, month, year);
+
+        // Lấy dữ liệu lương đã tính từ bảng salaries (SalaryDTO)
+        SalaryDTO salary = salaryDAO.getSalaryByPeriod(id, month, year);
+
+        // 3. CHUẨN BỊ NỘI DUNG HIỂN THỊ
         String avatarPath = (emp.getAvatar() != null && !emp.getAvatar().isEmpty())
                 ? "file:" + emp.getAvatar() : "https://via.placeholder.com/100";
 
-        String htmlContent = "<html><body style='width: 320px; font-family: sans-serif;'>" +
-                "<div style='text-align: center;'>" +
-                "   <img src='" + avatarPath + "' width='100' height='100' style='border-radius: 50%;'>" +
-                "   <h2 style='margin: 10px 0 0 0;'>" + emp.getEmpName().toLowerCase() + "</h2>" + // Cho tên viết thường giống ảnh
-                "   <p style='color: gray;'>" + val(emp.getPosName()) + "</p>" +
-                "</div>" +
-                "<hr>" +
-                "<table style='width: 100%;'>" +
-                "<tr><td><b>Mã nhân viên:</b></td><td>" + emp.getId() + "</td></tr>" +
-                "<tr><td><b>Email:</b></td><td>" + val(emp.getEmail()) + "</td></tr>" +
-                "<tr><td><b>SĐT:</b></td><td>" + val(emp.getPhone()) + "</td></tr>" +
-                "<tr><td><b>Ngày vào làm:</b></td><td>" + formatDate(emp.getHireDate()) + "</td></tr>" +
-                "<tr><td><b>Phòng ban:</b></td><td>" + val(emp.getDeptName()) + "</td></tr>" +
-                "</table>" +
-                "<p style='background-color: #eee; padding: 2px;'><b>HỒ SƠ CÁ NHÂN</b></p>" +
-                "<table style='width: 100%;'>" +
-                "<tr><td>Ngày sinh:</td><td>" + formatDate(emp.getBirthday()) + "</td></tr>" +
-                "<tr><td>Giới tính:</td><td>" + (emp.getGender() != null && emp.getGender() == 1 ? "Nam" : "Nữ") + "</td></tr>" +
-                "<tr><td>Số CCCD:</td><td>" + val(emp.getIdCard()) + "</td></tr>" +
-                "<tr><td>Địa chỉ:</td><td>" + val(emp.getAddress()) + "</td></tr>" +
+        StringBuilder html = new StringBuilder("<html><body style='width: 320px; font-family: sans-serif;'>");
+        html.append("<div style='text-align: center;'>");
+        html.append("   <img src='").append(avatarPath).append("' width='100' height='100' style='border-radius: 50%;'>");
+        html.append("   <h2 style='margin: 10px 0 0 0;'>").append(emp.getEmpName().toLowerCase()).append("</h2>");
+        html.append("   <p style='color: gray;'>").append(val(emp.getPosName())).append("</p>");
+        html.append("</div><hr>");
 
-                // --- THÊM 2 DÒNG NÀY VÀO ĐÂY ---
-                "<tr><td>Học vấn:</td><td>" + val(emp.getEducation()) + "</td></tr>" +
-                "<tr><td>Kinh nghiệm:</td><td>" + val(emp.getExperience()) + "</td></tr>" +
-                // ------------------------------
+        // Bảng thông tin công việc & hồ sơ cá nhân
+        // ===== THÔNG TIN CÔNG VIỆC =====
+        html.append("<p style='background-color: #eee; padding: 2px;'><b>THÔNG TIN CÔNG VIỆC</b></p>");
+        html.append("<table style='width: 100%;'>");
 
-                "</table>" +
-                "<p style='background-color: #eee; padding: 2px;'><b>CHI TIẾT LƯƠNG</b></p>" +
-                "<table style='width: 100%;'>" +
-                "<tr><td>Lương cơ bản:</td><td align='right'>" + String.format(CURRENCY_FORMAT, emp.getBaseSalary()) + "</td></tr>" +
-                "<tr><td>Hệ số lương:</td><td align='right'>" + String.format("%.2f", emp.getCoefficient()) + "</td></tr>" +
-                "<tr><td>Phụ cấp:</td><td align='right'>" + String.format(CURRENCY_FORMAT, emp.getAllowance()) + "</td></tr>" +
-                "<tr><td>Thưởng:</td><td align='right'>" + String.format(CURRENCY_FORMAT, emp.getBonus()) + "</td></tr>" +
-                "<tr style='color: red; font-weight: bold;'><td>TỔNG NHẬN:</td><td align='right'>" + String.format(CURRENCY_FORMAT, emp.getTotalSalary()) + "</td></tr>" +
-                "</table>" +
-                "</body></html>";
+        html.append("<tr><td><b>Mã nhân viên:</b></td><td>").append(emp.getId()).append("</td></tr>");
+        html.append("<tr><td><b>Email:</b></td><td>").append(val(emp.getEmail())).append("</td></tr>");
+        html.append("<tr><td><b>SĐT:</b></td><td>").append(val(emp.getPhone())).append("</td></tr>");
+        html.append("<tr><td><b>Phòng ban:</b></td><td>").append(val(emp.getDeptName())).append("</td></tr>");
+        html.append("<tr><td><b>Chức vụ:</b></td><td>").append(val(emp.getPosName())).append("</td></tr>");
+        html.append("<tr><td><b>Ngày vào làm:</b></td><td>").append(formatDate(emp.getHireDate())).append("</td></tr>");
 
-        JOptionPane.showMessageDialog(empView, new JLabel(htmlContent), "Chi tiết nhân viên", JOptionPane.PLAIN_MESSAGE);
+        html.append("</table>");
+
+
+        // ===== HỒ SƠ CÁ NHÂN =====
+        html.append("<p style='background-color: #eee; padding: 2px;'><b>HỒ SƠ CÁ NHÂN</b></p>");
+        html.append("<table style='width: 100%;'>");
+
+        html.append("<tr><td>Ngày sinh:</td><td>").append(formatDate(emp.getBirthday())).append("</td></tr>");
+        html.append("<tr><td>Giới tính:</td><td>")
+                .append(emp.getGender() == 1 ? "Nam" : "Nữ")
+                .append("</td></tr>");
+        html.append("<tr><td>Số CCCD:</td><td>").append(val(emp.getIdCard())).append("</td></tr>");
+        html.append("<tr><td>Địa chỉ:</td><td>").append(val(emp.getAddress())).append("</td></tr>");
+        html.append("<tr><td>Học vấn:</td><td>").append(val(emp.getEducation())).append("</td></tr>");
+        html.append("<tr><td>Kinh nghiệm:</td><td>").append(val(emp.getExperience())).append("</td></tr>");
+
+        html.append("</table>");
+
+        // PHẦN CHI TIẾT LƯƠNG - Lấy dữ liệu từ SalaryDTO để hiển thị thưởng phạt tự động
+        html.append("<p style='background-color: #eee; padding: 2px;'><b>CHI TIẾT LƯƠNG (Tháng ").append(month).append(")</b></p>");
+        html.append("<table style='width: 100%;'>");
+
+        if (salary != null) {
+            double luongCung = emp.getBaseSalary() * emp.getCoefficient();
+
+            html.append("<tr><td>Lương cơ bản:</td><td align='right'>")
+                    .append(String.format(CURRENCY_FORMAT, luongCung)).append("</td></tr>");
+
+            html.append("<tr><td>Phụ cấp:</td><td align='right'>")
+                    .append(String.format(CURRENCY_FORMAT, emp.getAllowance())).append("</td></tr>");
+
+            html.append("<tr><td>Thưởng chuyên cần:</td><td align='right'>")
+                    .append(String.format(CURRENCY_FORMAT, salary.getBonus())).append("</td></tr>");
+
+            if (salary.getTotalPenalty() > 0) {
+                html.append("<tr style='color: orange;'><td>Tiền phạt:</td><td align='right'>-")
+                        .append(String.format(CURRENCY_FORMAT, salary.getTotalPenalty())).append("</td></tr>");
+            }
+
+            html.append("<tr style='color: red; font-weight: bold; font-size: 14px;'><td>TỔNG NHẬN:</td><td align='right'>")
+                    .append(String.format(CURRENCY_FORMAT, salary.getFinalAmount())).append("</td></tr>");
+        }
+        html.append("</table></body></html>");
+
+        JOptionPane.showMessageDialog(empView, new JLabel(html.toString()), "Chi tiết nhân viên", JOptionPane.PLAIN_MESSAGE);
     }
-
 
     private void initSearchEvents() {
         // 1. Tìm kiếm khi đang gõ (Real-time)
@@ -357,3 +403,4 @@ public class EmployeeController {
         return empView;
     }
 }
+
